@@ -329,7 +329,7 @@ export default function Residents() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Not Assigned</SelectItem>
+                        <SelectItem value="not_assigned">Not Assigned</SelectItem>
                         {rooms
                           .filter(room => room.occupancy < room.capacity)
                           .map((room) => (

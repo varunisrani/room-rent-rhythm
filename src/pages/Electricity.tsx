@@ -166,18 +166,16 @@ export default function Electricity() {
       
       const { data, error } = await supabase
         .from("electricity_readings")
-        .insert([
-          {
-            room_id: values.room_id,
-            previous_reading: values.previous_reading,
-            current_reading: values.current_reading,
-            units,
-            rate: values.rate,
-            amount,
-            reading_date: new Date(),
-            status: "Pending"
-          }
-        ])
+        .insert({
+          room_id: values.room_id,
+          previous_reading: values.previous_reading,
+          current_reading: values.current_reading,
+          units,
+          rate: values.rate,
+          amount,
+          reading_date: new Date().toISOString(),
+          status: "Pending"
+        })
         .select();
         
       if (error) {

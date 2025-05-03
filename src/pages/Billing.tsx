@@ -34,6 +34,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface ResidentWithRoom {
+  id: string;
+  name: string;
+  room_id: string | null;
+  rooms?: {
+    room_no: string;
+  } | null;
+}
+
 export default function Billing() {
   const [searchQuery, setSearchQuery] = useState("");
   const [bills, setBills] = useState<Bill[]>([]);
@@ -140,7 +149,8 @@ export default function Billing() {
         }
         
         if (data) {
-          setResidents(data);
+          // We're storing residents with just the properties we need, not as the full Resident type
+          setResidents(data as unknown as Resident[]);
         }
       } catch (error: any) {
         toast({
@@ -186,8 +196,8 @@ export default function Billing() {
       }
       
       if (data) {
-        // Find resident
-        const resident = residents.find(r => r.id === values.resident_id);
+        // Find resident with room info
+        const resident = residents.find(r => r.id === values.resident_id) as unknown as ResidentWithRoom;
         const newBill = {
           ...data[0],
           resident_name: resident?.name || 'Unknown',
