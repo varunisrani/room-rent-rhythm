@@ -9,12 +9,46 @@ import { Plus, Search, MoreHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Room } from "@/types/hostelTypes";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Rooms() {
   const [searchQuery, setSearchQuery] = useState("");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openDialog, setOpenDialog] = useState(false);
   const { toast } = useToast();
+  
+  const form = useForm({
+    defaultValues: {
+      room_no: "",
+      type: "Single",
+      floor: "Ground",
+      capacity: 1,
+      rent: 0,
+    },
+  });
   
   useEffect(() => {
     async function fetchRooms() {
@@ -54,6 +88,48 @@ export default function Rooms() {
       room.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
       room.status.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  
+  const onSubmit = async (values: any) => {
+    try {
+      const { data, error } = await supabase
+        .from("rooms")
+        .insert([
+          {
+            room_no: values.room_no,
+            type: values.type,
+            floor: values.floor,
+            capacity: values.capacity,
+            rent: values.rent,
+            occupancy: 0,
+            status: "Available"
+          }
+        ])
+        .select();
+        
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setRooms([...rooms, data[0]]);
+        
+        toast({
+          title: "Room added successfully",
+          description: `Room ${values.room_no} has been added.`,
+        });
+        
+        setOpenDialog(false);
+        form.reset();
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error adding room",
+        description: error.message || "Failed to add room",
+        variant: "destructive",
+      });
+      console.error("Error adding room:", error);
+    }
+  };
 
   return (
     <div>
@@ -62,7 +138,7 @@ export default function Rooms() {
           <h1 className="text-3xl font-bold mb-1">Rooms</h1>
           <p className="text-muted-foreground">Manage all your hostel rooms and their status.</p>
         </div>
-        <Button className="flex items-center gap-1">
+        <Button className="flex items-center gap-1" onClick={() => setOpenDialog(true)}>
           <Plus className="h-4 w-4" />
           <span>Add Room</span>
         </Button>
@@ -134,6 +210,146 @@ export default function Rooms() {
           )}
         </CardContent>
       </Card>
+      
+      {/* Add Room Dialog */}
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Room</DialogTitle>
+            <DialogDescription>
+              Fill in the details below to add a new room to your hostel.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="room_no"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Room Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. 101" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Room Type</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Single">Single</SelectItem>
+                          <SelectItem value="Double">Double</SelectItem>
+                          <SelectItem value="Triple">Triple</SelectItem>
+                          <SelectItem value="Quad">Quad</SelectItem>
+                          <SelectItem value="Dormitory">Dormitory</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="floor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Floor</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select floor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Ground">Ground Floor</SelectItem>
+                          <SelectItem value="First">First Floor</SelectItem>
+                          <SelectItem value="Second">Second Floor</SelectItem>
+                          <SelectItem value="Third">Third Floor</SelectItem>
+                          <SelectItem value="Fourth">Fourth Floor</SelectItem>
+                          <SelectItem value="Fifth">Fifth Floor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="capacity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Capacity</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="Number of beds"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value || '0', 10))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="rent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Monthly Rent (₹)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="Monthly rent"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value || '0'))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setOpenDialog(false)} 
+                  type="button"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Add Room</Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
