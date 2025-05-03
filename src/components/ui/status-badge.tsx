@@ -8,8 +8,6 @@ type StatusBadgeProps = {
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const getStatusStyles = () => {
-    const baseClasses = "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium";
-    
     switch (status.toLowerCase()) {
       case "active":
         return "bg-green-100 text-status-active";
@@ -31,6 +29,8 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
         return "bg-gray-100 text-gray-700";
     }
   };
+
+  const baseClasses = "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium";
 
   return (
     <span className={cn(baseClasses, getStatusStyles(), className)}>
