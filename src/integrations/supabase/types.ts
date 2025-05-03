@@ -141,6 +141,53 @@ export type Database = {
         }
         Relationships: []
       }
+      bills: {
+        Row: {
+          amount: number
+          bill_date: string
+          created_at: string
+          details: string | null
+          due_date: string
+          id: string
+          invoice_id: string
+          resident_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          bill_date?: string
+          created_at?: string
+          details?: string | null
+          due_date: string
+          id?: string
+          invoice_id: string
+          resident_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bill_date?: string
+          created_at?: string
+          details?: string | null
+          due_date?: string
+          id?: string
+          invoice_id?: string
+          resident_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bills_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crew_site_pages: {
         Row: {
           chunk_number: number
@@ -224,6 +271,56 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      electricity_readings: {
+        Row: {
+          amount: number
+          created_at: string
+          current_reading: number
+          id: string
+          previous_reading: number
+          rate: number
+          reading_date: string
+          room_id: string
+          status: string
+          units: number
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          current_reading: number
+          id?: string
+          previous_reading: number
+          rate: number
+          reading_date?: string
+          room_id: string
+          status?: string
+          units: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          current_reading?: number
+          id?: string
+          previous_reading?: number
+          rate?: number
+          reading_date?: string
+          room_id?: string
+          status?: string
+          units?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "electricity_readings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       enquiries: {
         Row: {
@@ -611,6 +708,89 @@ export type Database = {
           summary?: string
           title?: string
           url?: string
+        }
+        Relationships: []
+      }
+      residents: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          join_date: string
+          name: string
+          phone: string
+          room_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          join_date?: string
+          name: string
+          phone: string
+          room_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          join_date?: string
+          name?: string
+          phone?: string
+          room_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "residents_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rooms: {
+        Row: {
+          capacity: number
+          created_at: string
+          floor: string
+          id: string
+          occupancy: number
+          rent: number
+          room_no: string
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          capacity: number
+          created_at?: string
+          floor: string
+          id?: string
+          occupancy?: number
+          rent: number
+          room_no: string
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          floor?: string
+          id?: string
+          occupancy?: number
+          rent?: number
+          room_no?: string
+          status?: string
+          type?: string
+          updated_at?: string
         }
         Relationships: []
       }
