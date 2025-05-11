@@ -3,11 +3,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 // Pages
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Residents from "./pages/Residents";
 import Rooms from "./pages/Rooms";
@@ -22,21 +25,52 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-          <Route path="/residents" element={<Layout><Residents /></Layout>} />
-          <Route path="/rooms" element={<Layout><Rooms /></Layout>} />
-          <Route path="/billing" element={<Layout><Billing /></Layout>} />
-          <Route path="/electricity" element={<Layout><Electricity /></Layout>} />
-          <Route path="/reports" element={<Layout><Reports /></Layout>} />
-          <Route path="/settings" element={<Layout><Settings /></Layout>} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/dashboard" element={
+              <RouteGuard>
+                <Layout><Dashboard /></Layout>
+              </RouteGuard>
+            } />
+            <Route path="/residents" element={
+              <RouteGuard>
+                <Layout><Residents /></Layout>
+              </RouteGuard>
+            } />
+            <Route path="/rooms" element={
+              <RouteGuard>
+                <Layout><Rooms /></Layout>
+              </RouteGuard>
+            } />
+            <Route path="/billing" element={
+              <RouteGuard>
+                <Layout><Billing /></Layout>
+              </RouteGuard>
+            } />
+            <Route path="/electricity" element={
+              <RouteGuard>
+                <Layout><Electricity /></Layout>
+              </RouteGuard>
+            } />
+            <Route path="/reports" element={
+              <RouteGuard allowedRoles={['admin']}>
+                <Layout><Reports /></Layout>
+              </RouteGuard>
+            } />
+            <Route path="/settings" element={
+              <RouteGuard allowedRoles={['admin']}>
+                <Layout><Settings /></Layout>
+              </RouteGuard>
+            } />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

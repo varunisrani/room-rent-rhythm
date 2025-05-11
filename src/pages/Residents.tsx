@@ -70,6 +70,8 @@ export default function Residents() {
       gender: "male",
       security_deposit: 0,
       pg_location: "",
+      monthly_rent: 0,
+      join_date: new Date().toISOString().split('T')[0],
     },
   });
   
@@ -86,6 +88,8 @@ export default function Residents() {
           gender: currentResident.gender || "male",
           security_deposit: currentResident.security_deposit || 0,
           pg_location: currentResident.pg_location || "",
+          monthly_rent: currentResident.monthly_rent || 0,
+          join_date: new Date(currentResident.join_date).toISOString().split('T')[0],
         });
       } else {
         form.reset({
@@ -97,6 +101,8 @@ export default function Residents() {
           gender: "male",
           security_deposit: 0,
           pg_location: "",
+          monthly_rent: 0,
+          join_date: new Date().toISOString().split('T')[0],
         });
       }
     }
@@ -123,6 +129,7 @@ export default function Residents() {
             gender,
             security_deposit,
             pg_location,
+            monthly_rent,
             rooms(room_no)
           `)
           .order("name");
@@ -212,6 +219,8 @@ export default function Residents() {
             gender: values.gender,
             security_deposit: values.security_deposit,
             pg_location: values.pg_location,
+            monthly_rent: values.monthly_rent,
+            join_date: values.join_date,
           })
           .eq("id", currentResident.id)
           .select();
@@ -247,11 +256,12 @@ export default function Residents() {
             email: values.email || null,
             room_id: roomIdToUse,
             status: "Active",
-            join_date: new Date().toISOString(),
+            join_date: values.join_date,
             date_of_birth: formattedDateOfBirth,
             gender: values.gender,
             security_deposit: values.security_deposit,
             pg_location: values.pg_location,
+            monthly_rent: values.monthly_rent,
           })
           .select();
           
@@ -510,6 +520,20 @@ export default function Residents() {
 
                 <FormField
                   control={form.control}
+                  name="join_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Joining Date*</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="gender"
                   render={({ field }) => (
                     <FormItem>
@@ -546,7 +570,21 @@ export default function Residents() {
                   name="security_deposit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Security Deposit</FormLabel>
+                      <FormLabel>Security Deposit (₹)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="monthly_rent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Monthly Rent (₹)</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
                       </FormControl>

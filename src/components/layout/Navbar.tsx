@@ -1,28 +1,48 @@
 
-import { Link } from "react-router-dom";
-import { Settings, Bell, Menu, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Settings, Bell, Menu, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navItems = [
-  { name: "Dashboard", path: "/dashboard" },
-  { name: "Residents", path: "/residents" },
-  { name: "Rooms", path: "/rooms" },
-  { name: "Billing", path: "/billing" },
-  { name: "Electricity", path: "/electricity" },
-  { name: "Reports", path: "/reports" },
+  { name: "Dashboard", path: "/dashboard", roles: ["admin", "manager"] },
+  { name: "Residents", path: "/residents", roles: ["admin", "manager"] },
+  { name: "Rooms", path: "/rooms", roles: ["admin", "manager"] },
+  { name: "Billing", path: "/billing", roles: ["admin", "manager"] },
+  { name: "Electricity", path: "/electricity", roles: ["admin", "manager"] },
+  { name: "Reports", path: "/reports", roles: ["admin"] },
 ];
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, logout, isAdmin } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/auth");
+  };
+  
+  const filteredNavItems = navItems.filter(item => 
+    !item.roles || item.roles.includes(user?.role || "")
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md shadow-sm">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2">
-          <Link to="/" className="flex items-center">
+          <Link to="/dashboard" className="flex items-center">
             <div className="text-xl font-bold flex items-center">
               <div className="p-1.5 rounded-md bg-gradient-to-br from-premium-accent to-premium-highlight mr-2">
                 <svg
@@ -64,7 +84,7 @@ export default function Navbar() {
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <NavLink key={item.path} to={item.path} name={item.name} />
           ))}
         </nav>
@@ -74,14 +94,32 @@ export default function Navbar() {
             <Bell size={18} />
             <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
           </button>
-          <Link to="/settings" className="flex items-center px-2 py-1.5 text-sm hover:text-premium-accent">
-            <Settings className="h-4 w-4 mr-1" />
-            <span>Settings</span>
-          </Link>
-          <Avatar className="h-8 w-8 border border-gray-200">
-            <AvatarImage src="https://github.com/shadcn.png" />
-            <AvatarFallback>AD</AvatarFallback>
-          </Avatar>
+          
+          {isAdmin && (
+            <Link to="/settings" className="flex items-center px-2 py-1.5 text-sm hover:text-premium-accent">
+              <Settings className="h-4 w-4 mr-1" />
+              <span>Settings</span>
+            </Link>
+          )}
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Avatar className="h-8 w-8 border border-gray-200 cursor-pointer">
+                <AvatarImage src="https://github.com/shadcn.png" />
+                <AvatarFallback>{user?.username?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>
+                {user?.username} ({user?.role})
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       
@@ -94,7 +132,7 @@ export default function Navbar() {
           transition={{ duration: 0.2 }}
         >
           <div className="px-4 py-3 space-y-1">
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -104,14 +142,23 @@ export default function Navbar() {
                 {item.name}
               </Link>
             ))}
+            {isAdmin && (
+              <Link
+                to="/settings"
+                className="block px-3 py-2 rounded-md hover:bg-gray-100 text-sm font-medium"
+                onClick={() => setIsOpen(false)}
+              >
+                Settings
+              </Link>
+            )}
             <div className="border-t my-2"></div>
-            <Link
-              to="/settings"
-              className="block px-3 py-2 rounded-md hover:bg-gray-100 text-sm font-medium"
-              onClick={() => setIsOpen(false)}
+            <button
+              className="block w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 text-sm font-medium text-red-600"
+              onClick={handleLogout}
             >
-              Settings
-            </Link>
+              <LogOut className="h-4 w-4 mr-2 inline" />
+              Logout
+            </button>
           </div>
         </motion.div>
       )}
