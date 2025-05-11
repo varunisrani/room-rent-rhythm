@@ -714,34 +714,46 @@ export type Database = {
       residents: {
         Row: {
           created_at: string
+          date_of_birth: string | null
           email: string | null
+          gender: string | null
           id: string
           join_date: string
           name: string
+          pg_location: string | null
           phone: string
           room_id: string | null
+          security_deposit: number | null
           status: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          date_of_birth?: string | null
           email?: string | null
+          gender?: string | null
           id?: string
           join_date?: string
           name: string
+          pg_location?: string | null
           phone: string
           room_id?: string | null
+          security_deposit?: number | null
           status?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          date_of_birth?: string | null
           email?: string | null
+          gender?: string | null
           id?: string
           join_date?: string
           name?: string
+          pg_location?: string | null
           phone?: string
           room_id?: string | null
+          security_deposit?: number | null
           status?: string
           updated_at?: string
         }

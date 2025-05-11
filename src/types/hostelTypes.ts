@@ -1,4 +1,5 @@
 
+
 // Custom types for hostel management system
 // These types mirror the database schema but allow us to extend them as needed
 
@@ -25,6 +26,10 @@ export interface Resident {
   status: string;
   created_at: string;
   updated_at: string;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  security_deposit?: number | null;
+  pg_location?: string | null;
 }
 
 export interface ElectricityReading {

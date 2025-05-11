@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash2, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Resident, Room } from "@/types/hostelTypes";
 import { useToast } from "@/components/ui/use-toast";
@@ -39,6 +39,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function Residents() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,6 +51,13 @@ export default function Residents() {
   const [currentResident, setCurrentResident] = useState<Resident | null>(null);
   const [confirmDeleteDialog, setConfirmDeleteDialog] = useState(false);
   const [residentToDelete, setResidentToDelete] = useState<Resident | null>(null);
+  const [pgLocations, setPgLocations] = useState<string[]>([
+    "Main Building", 
+    "Annex Building", 
+    "North Wing", 
+    "South Wing", 
+    "East Block"
+  ]);
   const { toast } = useToast();
   
   const form = useForm({
@@ -58,6 +66,10 @@ export default function Residents() {
       phone: "",
       email: "",
       room_id: "",
+      date_of_birth: "",
+      gender: "male",
+      security_deposit: 0,
+      pg_location: "",
     },
   });
   
@@ -70,6 +82,10 @@ export default function Residents() {
           phone: currentResident.phone,
           email: currentResident.email || "",
           room_id: currentResident.room_id || "",
+          date_of_birth: currentResident.date_of_birth ? new Date(currentResident.date_of_birth).toISOString().split('T')[0] : "",
+          gender: currentResident.gender || "male",
+          security_deposit: currentResident.security_deposit || 0,
+          pg_location: currentResident.pg_location || "",
         });
       } else {
         form.reset({
@@ -77,6 +93,10 @@ export default function Residents() {
           phone: "",
           email: "",
           room_id: "",
+          date_of_birth: "",
+          gender: "male",
+          security_deposit: 0,
+          pg_location: "",
         });
       }
     }
@@ -99,6 +119,10 @@ export default function Residents() {
             created_at,
             updated_at,
             room_id,
+            date_of_birth,
+            gender,
+            security_deposit,
+            pg_location,
             rooms(room_no)
           `)
           .order("name");
@@ -172,6 +196,9 @@ export default function Residents() {
     try {
       const roomIdToUse = values.room_id === "not_assigned" ? null : values.room_id;
       
+      // Format date to YYYY-MM-DD format for PostgreSQL
+      const formattedDateOfBirth = values.date_of_birth ? values.date_of_birth : null;
+      
       if (editMode && currentResident) {
         // Update existing resident
         const { data, error } = await supabase
@@ -180,7 +207,11 @@ export default function Residents() {
             name: values.name,
             phone: values.phone,
             email: values.email || null,
-            room_id: roomIdToUse
+            room_id: roomIdToUse,
+            date_of_birth: formattedDateOfBirth,
+            gender: values.gender,
+            security_deposit: values.security_deposit,
+            pg_location: values.pg_location,
           })
           .eq("id", currentResident.id)
           .select();
@@ -216,7 +247,11 @@ export default function Residents() {
             email: values.email || null,
             room_id: roomIdToUse,
             status: "Active",
-            join_date: new Date().toISOString()
+            join_date: new Date().toISOString(),
+            date_of_birth: formattedDateOfBirth,
+            gender: values.gender,
+            security_deposit: values.security_deposit,
+            pg_location: values.pg_location,
           })
           .select();
           
@@ -395,7 +430,7 @@ export default function Residents() {
       
       {/* Add/Edit Resident Dialog */}
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[650px]">
           <DialogHeader>
             <DialogTitle>{editMode ? "Edit Resident" : "Add New Resident"}</DialogTitle>
             <DialogDescription>
@@ -407,29 +442,24 @@ export default function Residents() {
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter resident's name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2 flex items-center justify-center p-4 bg-muted/50 rounded-lg">
+                  <div className="flex flex-col items-center">
+                    <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center mb-2">
+                      <User className="h-16 w-16 text-muted-foreground" />
+                    </div>
+                    <span className="text-sm text-muted-foreground">Resident Photo</span>
+                  </div>
+                </div>
+
                 <FormField
                   control={form.control}
-                  name="phone"
+                  name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
+                      <FormLabel>Full Name*</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter phone number" {...field} />
+                        <Input placeholder="Enter resident's name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -438,10 +468,24 @@ export default function Residents() {
                 
                 <FormField
                   control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number*</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter phone number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email Address (Optional)</FormLabel>
+                      <FormLabel>Email Address</FormLabel>
                       <FormControl>
                         <Input placeholder="Enter email address" {...field} />
                       </FormControl>
@@ -449,39 +493,129 @@ export default function Residents() {
                     </FormItem>
                   )}
                 />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="room_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Assign Room</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
+                
+                <FormField
+                  control={form.control}
+                  name="date_of_birth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date of Birth</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a room" />
-                        </SelectTrigger>
+                        <Input type="date" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="not_assigned">Not Assigned</SelectItem>
-                        {rooms
-                          .filter(room => room.occupancy < room.capacity || (editMode && currentResident?.room_id === room.id))
-                          .map((room) => (
-                            <SelectItem key={room.id} value={room.id}>
-                              Room {room.room_no} ({room.occupancy}/{room.capacity})
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                      <div className="flex items-center space-x-4 pt-2">
+                        <FormControl>
+                          <RadioGroup 
+                            onValueChange={field.onChange} 
+                            value={field.value} 
+                            className="flex space-x-4"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="male" id="male" />
+                              <label htmlFor="male" className="text-sm">Male</label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="female" id="female" />
+                              <label htmlFor="female" className="text-sm">Female</label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="other" id="other" />
+                              <label htmlFor="other" className="text-sm">Other</label>
+                            </div>
+                          </RadioGroup>
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="security_deposit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Security Deposit</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="room_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assign Room</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a room" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="not_assigned">Not Assigned</SelectItem>
+                          {rooms
+                            .filter(room => room.occupancy < room.capacity || (editMode && currentResident?.room_id === room.id))
+                            .map((room) => (
+                              <SelectItem key={room.id} value={room.id}>
+                                Room {room.room_no} ({room.occupancy}/{room.capacity})
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="pg_location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>PG Location</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select PG location" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {pgLocations.map((location) => (
+                            <SelectItem key={location} value={location}>
+                              {location}
                             </SelectItem>
                           ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               
               <DialogFooter className="flex justify-end space-x-2 pt-4">
                 <Button 
