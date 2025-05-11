@@ -9,11 +9,13 @@ import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Lock, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Auth() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const form = useForm({
     defaultValues: {
@@ -27,28 +29,38 @@ export default function Auth() {
       setLoading(true);
 
       // Query the users table to find the user
-      const { data: users, error: userError } = await supabase
+      const { data: users, error } = await supabase
         .from("users")
         .select("*")
-        .eq("username", values.username)
-        .single();
+        .eq("username", values.username);
 
-      if (userError || !users) {
+      if (error) {
+        throw new Error("Error fetching user data");
+      }
+
+      if (!users || users.length === 0) {
         throw new Error("Invalid username or password");
       }
+
+      const user = users[0];
 
       // In a real app, you should properly verify the password hash
-      // Here we're just checking if it matches the stored hash for simplicity
-      if (users.password !== values.password) {
+      // Here we're just checking if it matches the stored password for simplicity
+      if (user.password !== values.password) {
         throw new Error("Invalid username or password");
       }
 
-      // Set the user info in localStorage for persistence
-      localStorage.setItem("pg_user", JSON.stringify(users));
+      // Login successful
+      login({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        created_at: user.created_at
+      });
       
       toast({
         title: "Login successful",
-        description: `Welcome back, ${users.username}!`,
+        description: `Welcome back, ${user.username}!`,
       });
 
       // Redirect to dashboard

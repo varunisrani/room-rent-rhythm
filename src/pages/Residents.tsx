@@ -193,9 +193,9 @@ export default function Residents() {
   
   // Filter residents based on search query
   const filteredResidents = residents.filter(
-    (resident: any) =>
+    (resident) =>
       resident.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (resident.room && resident.room.includes(searchQuery)) ||
+      (resident.room && String(resident.room).includes(searchQuery)) ||
       resident.phone.includes(searchQuery)
   );
   
