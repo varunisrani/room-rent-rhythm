@@ -28,9 +28,9 @@ export default function Auth() {
     try {
       setLoading(true);
 
-      // Query the users table to find the user
+      // Query the login table instead of users table
       const { data: users, error } = await supabase
-        .from("users")
+        .from("login")
         .select("*")
         .eq("username", values.username);
 
@@ -52,9 +52,9 @@ export default function Auth() {
 
       // Login successful
       login({
-        id: user.id as string, // Ensure the ID is treated as string
+        id: user.id, // ID is already a string in the login table
         username: user.username,
-        role: user.role as 'admin' | 'manager', // Type assertion for role
+        role: user.role as 'admin' | 'manager',
         created_at: user.created_at
       });
       
