@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ export default function Auth() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
 
   const form = useForm({
     defaultValues: {
@@ -23,6 +23,18 @@ export default function Auth() {
       password: "",
     },
   });
+
+  // If already logged in, redirect to appropriate page
+  useEffect(() => {
+    if (user) {
+      console.log("User already logged in, redirecting...");
+      if (user.role === 'admin') {
+        navigate('/dashboard', { replace: true });
+      } else if (user.role === 'manager') {
+        navigate('/residents', { replace: true });
+      }
+    }
+  }, [user, navigate]);
 
   const onSubmit = async (values: { username: string; password: string }) => {
     try {
@@ -58,13 +70,16 @@ export default function Auth() {
         created_at: user.created_at
       });
       
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${user.username}!`,
-      });
-
-      // Redirect to dashboard
-      navigate("/dashboard");
+      console.log("Login successful, redirecting to appropriate page...");
+      
+      // Redirect based on role
+      if (user.role === 'admin') {
+        navigate("/dashboard");
+      } else if (user.role === 'manager') {
+        navigate("/residents");
+      } else {
+        navigate("/residents"); // Default fallback
+      }
     } catch (error: any) {
       toast({
         title: "Login failed",

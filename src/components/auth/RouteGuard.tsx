@@ -8,16 +8,30 @@ interface RouteGuardProps {
 }
 
 export const RouteGuard = ({ children, allowedRoles = ['admin', 'manager'] }: RouteGuardProps) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
+
+  // Show loading state if authentication state is still being determined
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-premium-accent mx-auto"></div>
+          <p className="mt-2 text-premium-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // If user is not logged in, redirect to login page
   if (!user) {
+    console.log("RouteGuard: User not logged in, redirecting to auth");
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   // If user is logged in but doesn't have the required role
   if (allowedRoles && !allowedRoles.includes(user.role)) {
+    console.log(`RouteGuard: User role ${user.role} not allowed, redirecting`);
     // Redirect managers to residents page if trying to access admin-only pages
     if (user.role === 'manager') {
       return <Navigate to="/residents" replace />;
@@ -26,6 +40,7 @@ export const RouteGuard = ({ children, allowedRoles = ['admin', 'manager'] }: Ro
     return <Navigate to="/dashboard" replace />;
   }
 
+  console.log(`RouteGuard: Access granted for role ${user.role}`);
   // If user is logged in and has the required role, render children
   return <>{children}</>;
 };
