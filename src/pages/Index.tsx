@@ -5,14 +5,20 @@ import { useAuth } from "@/contexts/AuthContext";
 const Index = () => {
   const { user } = useAuth();
   
-  // Redirect to dashboard if logged in as admin, residents if manager, otherwise to auth
+  // If not logged in, redirect to auth
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
   
-  return user.role === 'admin' 
-    ? <Navigate to="/dashboard" replace /> 
-    : <Navigate to="/residents" replace />;
+  // Redirect based on role
+  if (user.role === 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  } else if (user.role === 'manager') {
+    return <Navigate to="/residents" replace />;
+  } else {
+    // Fallback for any other role
+    return <Navigate to="/residents" replace />;
+  }
 };
 
 export default Index;

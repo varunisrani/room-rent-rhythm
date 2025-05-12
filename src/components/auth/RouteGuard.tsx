@@ -1,5 +1,4 @@
 
-import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -19,6 +18,11 @@ export const RouteGuard = ({ children, allowedRoles = ['admin', 'manager'] }: Ro
 
   // If user is logged in but doesn't have the required role
   if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // Redirect managers to residents page if trying to access admin-only pages
+    if (user.role === 'manager') {
+      return <Navigate to="/residents" replace />;
+    }
+    // Generic fallback
     return <Navigate to="/dashboard" replace />;
   }
 

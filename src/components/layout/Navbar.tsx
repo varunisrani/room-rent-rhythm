@@ -34,15 +34,16 @@ export default function Navbar() {
     navigate("/auth");
   };
   
+  // Filter nav items based on user role
   const filteredNavItems = navItems.filter(item => 
-    !item.roles || item.roles.includes(user?.role || "")
+    item.roles.includes(user?.role || "")
   );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md shadow-sm">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2">
-          <Link to="/dashboard" className="flex items-center">
+          <Link to={user?.role === "admin" ? "/dashboard" : "/residents"} className="flex items-center">
             <div className="text-xl font-bold flex items-center">
               <div className="p-1.5 rounded-md bg-gradient-to-br from-premium-accent to-premium-highlight mr-2">
                 <svg
