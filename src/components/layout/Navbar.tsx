@@ -1,6 +1,6 @@
 
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { motion } from "framer-motion";
@@ -90,11 +90,6 @@ export default function Navbar() {
         </nav>
         
         <div className="hidden md:flex items-center gap-4">
-          <button className="p-2 rounded-full hover:bg-gray-100 relative">
-            <Bell size={18} />
-            <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
-          </button>
-          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Avatar className="h-8 w-8 border border-gray-200 cursor-pointer">
