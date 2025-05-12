@@ -41,16 +41,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
+// Interface for the resident data with room info
+interface ResidentWithRoom extends Resident {
+  room?: string;
+  rooms?: {
+    room_no: string;
+  };
+}
+
 export default function Residents() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [residents, setResidents] = useState<Resident[]>([]);
+  const [residents, setResidents] = useState<ResidentWithRoom[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [currentResident, setCurrentResident] = useState<Resident | null>(null);
+  const [currentResident, setCurrentResident] = useState<ResidentWithRoom | null>(null);
   const [confirmDeleteDialog, setConfirmDeleteDialog] = useState(false);
-  const [residentToDelete, setResidentToDelete] = useState<Resident | null>(null);
+  const [residentToDelete, setResidentToDelete] = useState<ResidentWithRoom | null>(null);
   const [pgLocations, setPgLocations] = useState<string[]>([
     "Main Building", 
     "Annex Building", 
@@ -143,7 +151,7 @@ export default function Residents() {
             ...item,
             room: item.rooms?.room_no || 'Not Assigned'
           }));
-          setResidents(formattedData as unknown as Resident[]);
+          setResidents(formattedData as ResidentWithRoom[]);
           console.log("Resident data loaded:", formattedData);
         }
       } catch (error: any) {
@@ -392,7 +400,7 @@ export default function Residents() {
               </TableHeader>
               <TableBody>
                 {filteredResidents.length > 0 ? (
-                  filteredResidents.map((resident: any) => (
+                  filteredResidents.map((resident) => (
                     <TableRow key={resident.id}>
                       <TableCell className="font-medium">{resident.name}</TableCell>
                       <TableCell>{resident.room}</TableCell>

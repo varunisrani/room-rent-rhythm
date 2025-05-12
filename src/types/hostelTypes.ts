@@ -64,6 +64,6 @@ export interface User {
   username: string;
   role: 'admin' | 'manager';
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 

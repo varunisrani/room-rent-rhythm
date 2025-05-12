@@ -52,9 +52,9 @@ export default function Auth() {
 
       // Login successful
       login({
-        id: user.id,
+        id: user.id as string, // Ensure the ID is treated as string
         username: user.username,
-        role: user.role,
+        role: user.role as 'admin' | 'manager', // Type assertion for role
         created_at: user.created_at
       });
       

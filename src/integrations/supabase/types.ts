@@ -576,6 +576,33 @@ export type Database = {
           },
         ]
       }
+      login: {
+        Row: {
+          created_at: string
+          id: string
+          password: string
+          role: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          password: string
+          role: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          password?: string
+          role?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
       mcp_templates: {
         Row: {
           agents_code: string
@@ -719,6 +746,7 @@ export type Database = {
           gender: string | null
           id: string
           join_date: string
+          monthly_rent: number | null
           name: string
           pg_location: string | null
           phone: string
@@ -734,6 +762,7 @@ export type Database = {
           gender?: string | null
           id?: string
           join_date?: string
+          monthly_rent?: number | null
           name: string
           pg_location?: string | null
           phone: string
@@ -749,6 +778,7 @@ export type Database = {
           gender?: string | null
           id?: string
           join_date?: string
+          monthly_rent?: number | null
           name?: string
           pg_location?: string | null
           phone?: string
@@ -860,6 +890,27 @@ export type Database = {
           id?: number
           password?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      waitlist: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
         }
         Relationships: []
       }
