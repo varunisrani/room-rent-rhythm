@@ -17,7 +17,6 @@ import Rooms from "./pages/Rooms";
 import Billing from "./pages/Billing";
 import Electricity from "./pages/Electricity";
 import Reports from "./pages/Reports";
-import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,7 +32,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={
-              <RouteGuard>
+              <RouteGuard allowedRoles={['admin']}>
                 <Layout><Dashboard /></Layout>
               </RouteGuard>
             } />
@@ -60,11 +59,6 @@ const App = () => (
             <Route path="/reports" element={
               <RouteGuard allowedRoles={['admin']}>
                 <Layout><Reports /></Layout>
-              </RouteGuard>
-            } />
-            <Route path="/settings" element={
-              <RouteGuard allowedRoles={['admin']}>
-                <Layout><Settings /></Layout>
               </RouteGuard>
             } />
             <Route path="*" element={<NotFound />} />

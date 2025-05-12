@@ -1,6 +1,6 @@
 
 import { Link, useNavigate } from "react-router-dom";
-import { Settings, Bell, Menu, X, LogOut } from "lucide-react";
+import { Bell, Menu, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { motion } from "framer-motion";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const navItems = [
-  { name: "Dashboard", path: "/dashboard", roles: ["admin", "manager"] },
+  { name: "Dashboard", path: "/dashboard", roles: ["admin"] },
   { name: "Residents", path: "/residents", roles: ["admin", "manager"] },
   { name: "Rooms", path: "/rooms", roles: ["admin", "manager"] },
   { name: "Billing", path: "/billing", roles: ["admin", "manager"] },
@@ -26,7 +26,7 @@ const navItems = [
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -95,13 +95,6 @@ export default function Navbar() {
             <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
           </button>
           
-          {isAdmin && (
-            <Link to="/settings" className="flex items-center px-2 py-1.5 text-sm hover:text-premium-accent">
-              <Settings className="h-4 w-4 mr-1" />
-              <span>Settings</span>
-            </Link>
-          )}
-          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Avatar className="h-8 w-8 border border-gray-200 cursor-pointer">
@@ -142,15 +135,6 @@ export default function Navbar() {
                 {item.name}
               </Link>
             ))}
-            {isAdmin && (
-              <Link
-                to="/settings"
-                className="block px-3 py-2 rounded-md hover:bg-gray-100 text-sm font-medium"
-                onClick={() => setIsOpen(false)}
-              >
-                Settings
-              </Link>
-            )}
             <div className="border-t my-2"></div>
             <button
               className="block w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 text-sm font-medium text-red-600"
