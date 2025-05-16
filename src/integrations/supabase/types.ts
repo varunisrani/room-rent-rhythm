@@ -9,6 +9,83 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      accommodation_images: {
+        Row: {
+          accommodation_id: string | null
+          alt_text: string
+          created_at: string | null
+          id: string
+          image_url: string
+          sort_order: number
+        }
+        Insert: {
+          accommodation_id?: string | null
+          alt_text: string
+          created_at?: string | null
+          id?: string
+          image_url: string
+          sort_order?: number
+        }
+        Update: {
+          accommodation_id?: string | null
+          alt_text?: string
+          created_at?: string | null
+          id?: string
+          image_url?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_images_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accommodations: {
+        Row: {
+          address: string
+          code: string
+          contact: string
+          created_at: string | null
+          description: string
+          email: string
+          features: string[]
+          id: string
+          main_image: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          address: string
+          code: string
+          contact: string
+          created_at?: string | null
+          description: string
+          email: string
+          features?: string[]
+          id?: string
+          main_image: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string
+          code?: string
+          contact?: string
+          created_at?: string | null
+          description?: string
+          email?: string
+          features?: string[]
+          id?: string
+          main_image?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       agent_embeddings: {
         Row: {
           agents_code: string | null
@@ -793,6 +870,44 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_types: {
+        Row: {
+          accommodation_id: string | null
+          availability: string
+          created_at: string | null
+          id: string
+          price: number
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          availability: string
+          created_at?: string | null
+          id?: string
+          price: number
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          availability?: string
+          created_at?: string | null
+          id?: string
+          price?: number
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_types_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodations"
             referencedColumns: ["id"]
           },
         ]

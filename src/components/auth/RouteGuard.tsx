@@ -31,16 +31,19 @@ export const RouteGuard = ({ children, allowedRoles = ['admin', 'manager'] }: Ro
 
   // If user is logged in but doesn't have the required role
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    console.log(`RouteGuard: User role ${user.role} not allowed, redirecting`);
-    // Redirect managers to residents page if trying to access admin-only pages
+    console.log(`RouteGuard: User role ${user.role} not allowed for ${location.pathname}, redirecting`);
+    
+    // If trying to access admin-only page
     if (user.role === 'manager') {
+      // For managers, redirect to residents page which they can access
       return <Navigate to="/residents" replace />;
     }
+    
     // Generic fallback
     return <Navigate to="/dashboard" replace />;
   }
 
-  console.log(`RouteGuard: Access granted for role ${user.role}`);
+  console.log(`RouteGuard: Access granted for role ${user.role} to ${location.pathname}`);
   // If user is logged in and has the required role, render children
   return <>{children}</>;
 };

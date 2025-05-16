@@ -17,6 +17,7 @@ import Rooms from "./pages/Rooms";
 import Billing from "./pages/Billing";
 import Electricity from "./pages/Electricity";
 import Reports from "./pages/Reports";
+import Accommodations from "./pages/Accommodations"; // Add this import
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +60,12 @@ const App = () => (
             <Route path="/reports" element={
               <RouteGuard allowedRoles={['admin']}>
                 <Layout><Reports /></Layout>
+              </RouteGuard>
+            } />
+            {/* Add new route for accommodations, restricted to admins */}
+            <Route path="/accommodations" element={
+              <RouteGuard allowedRoles={['admin']}>
+                <Layout><Accommodations /></Layout>
               </RouteGuard>
             } />
             <Route path="*" element={<NotFound />} />

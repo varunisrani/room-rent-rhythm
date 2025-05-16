@@ -2,6 +2,7 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { User } from "@/types/hostelTypes";
 import { useToast } from "@/components/ui/use-toast";
+import { ensureStorageBucket } from "@/lib/createStorageBucket";
 
 interface AuthContextType {
   user: User | null;
@@ -28,7 +29,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isManager = user?.role === 'manager';
   const { toast } = useToast();
 
-  // Load user from localStorage on component mount
+  // Load user from localStorage on component mount and setup storage
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -40,6 +41,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const parsedUser = JSON.parse(storedUser);
             setUser(parsedUser);
             console.log("Auth state restored:", parsedUser.role);
+            
+            // If user is admin, ensure storage bucket exists
+            if (parsedUser.role === 'admin') {
+              await ensureStorageBucket('accommodations');
+            }
           } catch (error) {
             console.error("Failed to parse stored user:", error);
             localStorage.removeItem('pg_user');
@@ -63,6 +69,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       description: `Logged in as ${userData.role}`,
     });
     console.log("User logged in:", userData.role);
+    
+    // If admin, ensure storage bucket exists
+    if (userData.role === 'admin') {
+      ensureStorageBucket('accommodations');
+    }
   };
 
   const logout = () => {
