@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EditIcon, TrashIcon, ImageIcon, Building } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import AccommodationImages from "./AccommodationImages";
@@ -29,9 +29,10 @@ interface AccommodationsListProps {
   accommodations: any[];
   isLoading: boolean;
   onRefresh: () => void;
+  onEdit: (accommodation: any) => void;
 }
 
-const AccommodationsList = ({ accommodations, isLoading, onRefresh }: AccommodationsListProps) => {
+const AccommodationsList = ({ accommodations, isLoading, onRefresh, onEdit }: AccommodationsListProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
@@ -179,6 +180,13 @@ const AccommodationsList = ({ accommodations, isLoading, onRefresh }: Accommodat
                             />
                           </DialogContent>
                         </Dialog>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => onEdit(accommodation)}
+                        >
+                          <EditIcon className="h-4 w-4" />
+                        </Button>
                         <Button 
                           variant="destructive" 
                           size="sm" 

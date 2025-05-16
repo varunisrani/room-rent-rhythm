@@ -1,10 +1,9 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -19,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, X, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ensureStorageBucket } from "@/lib/createStorageBucket";
 
 // Create schema for form validation
 const accommodationSchema = z.object({
@@ -35,25 +35,33 @@ type AccommodationFormValues = z.infer<typeof accommodationSchema>;
 
 interface AccommodationFormProps {
   onSuccess: () => void;
+  initialData?: any; // For editing mode
+  mode?: 'add' | 'edit';
 }
 
-const AccommodationForm = ({ onSuccess }: AccommodationFormProps) => {
+const AccommodationForm = ({ onSuccess, initialData, mode = 'add' }: AccommodationFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.main_image || null);
   const [featureInput, setFeatureInput] = useState("");
-  const [features, setFeatures] = useState<string[]>([]);
+  const [features, setFeatures] = useState<string[]>(initialData?.features || []);
+  const { toast } = useToast();
+
+  // Ensure storage bucket exists on component mount
+  useEffect(() => {
+    ensureStorageBucket('accommodations');
+  }, []);
 
   const form = useForm<AccommodationFormValues>({
     resolver: zodResolver(accommodationSchema),
     defaultValues: {
-      name: "",
-      code: "",
-      description: "",
-      address: "",
-      contact: "",
-      email: "",
-      features: [],
+      name: initialData?.name || "",
+      code: initialData?.code || "",
+      description: initialData?.description || "",
+      address: initialData?.address || "",
+      contact: initialData?.contact || "",
+      email: initialData?.email || "",
+      features: initialData?.features || [],
     },
   });
 
@@ -88,9 +96,9 @@ const AccommodationForm = ({ onSuccess }: AccommodationFormProps) => {
   const uploadImage = async (file: File): Promise<string> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `accommodations/${fileName}`;
+    const filePath = `${fileName}`;
 
-    // Upload image to default bucket
+    // Upload image to accommodations bucket
     const { error: uploadError, data } = await supabase.storage
       .from('accommodations')
       .upload(filePath, file);
@@ -108,29 +116,55 @@ const AccommodationForm = ({ onSuccess }: AccommodationFormProps) => {
   };
 
   const onSubmit = async (values: AccommodationFormValues) => {
-    if (!imageFile) {
-      toast({
-        title: "Error",
-        description: "Please upload a main image for the accommodation",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
     try {
-      // Upload image first
-      const imageUrl = await uploadImage(imageFile);
+      setIsSubmitting(true);
+      
+      // Prepare the data object with all required fields
+      const accommodationData: any = {
+        name: values.name,
+        code: values.code,
+        description: values.description,
+        address: values.address,
+        contact: values.contact,
+        email: values.email,
+        features: features
+      };
 
-      // Then create accommodation with image URL
-      const { error } = await supabase.from("accommodations").insert({
-        ...values,
-        features: features,
-        main_image: imageUrl,
-      });
+      // If we're adding a new accommodation or changing the image
+      if ((mode === 'add' || imageFile) && !imagePreview) {
+        toast({
+          title: "Error",
+          description: "Please upload a main image for the accommodation",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
-      if (error) throw error;
+      // Upload image if there's a new one
+      if (imageFile) {
+        const imageUrl = await uploadImage(imageFile);
+        accommodationData.main_image = imageUrl;
+      } else if (initialData?.main_image) {
+        // Keep existing image for edit mode
+        accommodationData.main_image = initialData.main_image;
+      }
+
+      let result;
+      if (mode === 'edit' && initialData?.id) {
+        // Update existing accommodation
+        result = await supabase
+          .from("accommodations")
+          .update(accommodationData)
+          .eq("id", initialData.id);
+      } else {
+        // Insert new accommodation
+        result = await supabase
+          .from("accommodations")
+          .insert(accommodationData);
+      }
+
+      if (result.error) throw result.error;
 
       // Reset form
       form.reset();
@@ -140,11 +174,18 @@ const AccommodationForm = ({ onSuccess }: AccommodationFormProps) => {
 
       // Success callback
       onSuccess();
-    } catch (error) {
-      console.error("Error adding accommodation:", error);
+      
+      toast({
+        title: mode === 'edit' ? "Updated successfully" : "Added successfully",
+        description: mode === 'edit' 
+          ? "Accommodation has been updated" 
+          : "New accommodation has been added",
+      });
+    } catch (error: any) {
+      console.error("Error with accommodation:", error);
       toast({
         title: "Error",
-        description: "Failed to add accommodation",
+        description: error.message || "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -155,8 +196,8 @@ const AccommodationForm = ({ onSuccess }: AccommodationFormProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Add New Accommodation</CardTitle>
-        <CardDescription>Enter the details of the new hostel or PG accommodation</CardDescription>
+        <CardTitle>{mode === 'edit' ? 'Edit' : 'Add New'} Accommodation</CardTitle>
+        <CardDescription>Enter the details of the hostel or PG accommodation</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -342,10 +383,10 @@ const AccommodationForm = ({ onSuccess }: AccommodationFormProps) => {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
+                    {mode === 'edit' ? 'Updating...' : 'Saving...'}
                   </>
                 ) : (
-                  "Add Accommodation"
+                  mode === 'edit' ? 'Update Accommodation' : 'Add Accommodation'
                 )}
               </Button>
             </div>

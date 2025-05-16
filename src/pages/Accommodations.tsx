@@ -8,13 +8,20 @@ import AccommodationsList from "@/components/accommodations/AccommodationsList";
 import AccommodationForm from "@/components/accommodations/AccommodationForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { ensureStorageBucket } from "@/lib/createStorageBucket";
 
 const Accommodations = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [accommodations, setAccommodations] = useState([]);
   const [activeTab, setActiveTab] = useState("list");
+  const [editingAccommodation, setEditingAccommodation] = useState(null);
   const { toast } = useToast();
   const { isAdmin } = useAuth();
+
+  // Ensure storage bucket exists
+  useEffect(() => {
+    ensureStorageBucket('accommodations');
+  }, []);
 
   // Fetch accommodations data
   const fetchAccommodations = async () => {
@@ -43,6 +50,12 @@ const Accommodations = () => {
     fetchAccommodations();
   }, []);
 
+  // Handle editing an accommodation
+  const handleEdit = (accommodation) => {
+    setEditingAccommodation(accommodation);
+    setActiveTab("edit");
+  };
+
   // Only admin can access this page
   if (!isAdmin) {
     return <Navigate to="/dashboard" />;
@@ -61,6 +74,7 @@ const Accommodations = () => {
         <TabsList>
           <TabsTrigger value="list">All Accommodations</TabsTrigger>
           <TabsTrigger value="add">Add New</TabsTrigger>
+          {editingAccommodation && <TabsTrigger value="edit">Edit Accommodation</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="list" className="space-y-4">
@@ -68,6 +82,7 @@ const Accommodations = () => {
             accommodations={accommodations}
             isLoading={isLoading}
             onRefresh={fetchAccommodations}
+            onEdit={handleEdit}
           />
         </TabsContent>
 
@@ -81,7 +96,26 @@ const Accommodations = () => {
                 description: "The accommodation has been successfully added",
               });
             }}
+            mode="add"
           />
+        </TabsContent>
+
+        <TabsContent value="edit">
+          {editingAccommodation && (
+            <AccommodationForm 
+              initialData={editingAccommodation}
+              mode="edit"
+              onSuccess={() => {
+                fetchAccommodations();
+                setActiveTab("list");
+                setEditingAccommodation(null);
+                toast({
+                  title: "Accommodation updated",
+                  description: "The accommodation has been successfully updated",
+                });
+              }}
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>
