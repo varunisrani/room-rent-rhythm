@@ -1,4 +1,3 @@
-
 import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,6 +20,7 @@ const navItems = [
   { name: "Rooms", path: "/rooms", roles: ["admin", "manager"] },
   { name: "Billing", path: "/billing", roles: ["admin", "manager"] },
   { name: "Electricity", path: "/electricity", roles: ["admin", "manager"] },
+  { name: "Users", path: "/users", roles: ["admin"] },
   { name: "Accommodations", path: "/accommodations", roles: ["admin"] },
   { name: "Reports", path: "/reports", roles: ["admin"] },
 ];

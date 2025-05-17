@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,7 @@ import Electricity from "./pages/Electricity";
 import Reports from "./pages/Reports";
 import Accommodations from "./pages/Accommodations"; // Add this import
 import NotFound from "./pages/NotFound";
+import Users from "./pages/Users";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +66,11 @@ const App = () => (
             <Route path="/accommodations" element={
               <RouteGuard allowedRoles={['admin']}>
                 <Layout><Accommodations /></Layout>
+              </RouteGuard>
+            } />
+            <Route path="/users" element={
+              <RouteGuard allowedRoles={['admin']}>
+                <Layout><Users /></Layout>
               </RouteGuard>
             } />
             <Route path="*" element={<NotFound />} />
