@@ -19,23 +19,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Upload, X, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ensureStorageBucket } from "@/lib/createStorageBucket";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// Create schema for form validation
+// Create schema for form validation with all fields optional
 const accommodationSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  code: z.string().min(2, { message: "Code must be at least 2 characters" }),
-  description: z.string().min(10, { message: "Description must be at least 10 characters" }),
-  address: z.string().min(5, { message: "Address must be at least 5 characters" }),
-  contact: z.string().min(5, { message: "Contact number must be at least 5 characters" }),
-  email: z.string().email({ message: "Please enter a valid email" }),
+  name: z.string().optional(),
+  code: z.string().optional(),
+  description: z.string().optional(),
+  address: z.string().optional(),
+  contact: z.string().optional(),
+  email: z.string().optional(),
   features: z.array(z.string()).optional(),
+  pg_category: z.enum(['girls', 'boys']).optional(),
 });
 
 type AccommodationFormValues = z.infer<typeof accommodationSchema>;
 
 interface AccommodationFormProps {
   onSuccess: () => void;
-  initialData?: any; // For editing mode
+  initialData?: any;
   mode?: 'add' | 'edit';
 }
 
@@ -62,6 +64,7 @@ const AccommodationForm = ({ onSuccess, initialData, mode = 'add' }: Accommodati
       contact: initialData?.contact || "",
       email: initialData?.email || "",
       features: initialData?.features || [],
+      pg_category: initialData?.pg_category || undefined,
     },
   });
 
@@ -98,7 +101,6 @@ const AccommodationForm = ({ onSuccess, initialData, mode = 'add' }: Accommodati
     const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
     const filePath = `${fileName}`;
 
-    // Upload image to accommodations bucket
     const { error: uploadError, data } = await supabase.storage
       .from('accommodations')
       .upload(filePath, file);
@@ -107,7 +109,6 @@ const AccommodationForm = ({ onSuccess, initialData, mode = 'add' }: Accommodati
       throw new Error(`Error uploading image: ${uploadError.message}`);
     }
 
-    // Get public URL
     const { data: { publicUrl } } = supabase.storage
       .from('accommodations')
       .getPublicUrl(filePath);
@@ -119,46 +120,31 @@ const AccommodationForm = ({ onSuccess, initialData, mode = 'add' }: Accommodati
     try {
       setIsSubmitting(true);
       
-      // Prepare the data object with all required fields
       const accommodationData: any = {
-        name: values.name,
-        code: values.code,
-        description: values.description,
-        address: values.address,
-        contact: values.contact,
-        email: values.email,
-        features: features
+        name: values.name || null,
+        code: values.code || null,
+        description: values.description || null,
+        address: values.address || null,
+        contact: values.contact || null,
+        email: values.email || null,
+        features: features,
+        pg_category: values.pg_category || null,
       };
 
-      // If we're adding a new accommodation or changing the image
-      if ((mode === 'add' || imageFile) && !imagePreview) {
-        toast({
-          title: "Error",
-          description: "Please upload a main image for the accommodation",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Upload image if there's a new one
       if (imageFile) {
         const imageUrl = await uploadImage(imageFile);
         accommodationData.main_image = imageUrl;
       } else if (initialData?.main_image) {
-        // Keep existing image for edit mode
         accommodationData.main_image = initialData.main_image;
       }
 
       let result;
       if (mode === 'edit' && initialData?.id) {
-        // Update existing accommodation
         result = await supabase
           .from("accommodations")
           .update(accommodationData)
           .eq("id", initialData.id);
       } else {
-        // Insert new accommodation
         result = await supabase
           .from("accommodations")
           .insert(accommodationData);
@@ -166,13 +152,11 @@ const AccommodationForm = ({ onSuccess, initialData, mode = 'add' }: Accommodati
 
       if (result.error) throw result.error;
 
-      // Reset form
       form.reset();
       setImagePreview(null);
       setImageFile(null);
       setFeatures([]);
 
-      // Success callback
       onSuccess();
       
       toast({
@@ -231,6 +215,28 @@ const AccommodationForm = ({ onSuccess, initialData, mode = 'add' }: Accommodati
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="pg_category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>PG Category</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select PG category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="girls">Girls PG</SelectItem>
+                      <SelectItem value="boys">Boys PG</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <FormField
               control={form.control}
