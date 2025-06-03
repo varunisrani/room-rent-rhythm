@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -18,6 +17,7 @@ interface ImageGalleryItem {
   image_url: string;
   alt_text: string;
   sort_order: number;
+  pg_name: string;
 }
 
 const AccommodationImages = ({ accommodationId, accommodationName }: AccommodationImagesProps) => {
@@ -39,7 +39,7 @@ const AccommodationImages = ({ accommodationId, accommodationName }: Accommodati
     try {
       const { data, error } = await supabase
         .from("accommodation_images")
-        .select("*")
+        .select("id, image_url, alt_text, sort_order, pg_name")
         .eq("accommodation_id", accommodationId)
         .order("sort_order", { ascending: true });
 
@@ -129,6 +129,7 @@ const AccommodationImages = ({ accommodationId, accommodationName }: Accommodati
         image_url: imageUrl,
         alt_text: altText,
         sort_order: maxSortOrder,
+        pg_name: accommodationName,
       });
 
       if (error) throw error;

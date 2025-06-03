@@ -19,6 +19,7 @@ import Reports from "./pages/Reports";
 import Accommodations from "./pages/Accommodations"; // Add this import
 import NotFound from "./pages/NotFound";
 import Users from "./pages/Users";
+import Gallery from "./pages/Gallery";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,7 @@ const App = () => (
                 <Layout><Users /></Layout>
               </RouteGuard>
             } />
+            <Route path="/gallery" element={<Gallery />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

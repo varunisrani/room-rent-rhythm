@@ -22,6 +22,7 @@ const navItems = [
   { name: "Electricity", path: "/electricity", roles: ["admin", "manager"] },
   { name: "Users", path: "/users", roles: ["admin"] },
   { name: "Accommodations", path: "/accommodations", roles: ["admin"] },
+  { name: "Gallery", path: "/gallery", roles: ["admin"] },
   { name: "Reports", path: "/reports", roles: ["admin"] },
 ];
 
