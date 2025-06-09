@@ -132,57 +132,76 @@ const Gallery = () => {
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
-    const accommodationId = customAccommodationId || selectedPgId;
-    // We need accommodationId to upload to a specific folder, but it's not strictly mandatory for the DB row
-    const uploadFolder = accommodationId || 'general'; // Use a default folder if no ID is provided
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `accommodation-gallery/${uploadFolder}/${fileName}`;
+    try {
+      const accommodationId = customAccommodationId || selectedPgId;
+      const uploadFolder = accommodationId || 'general';
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `accommodation-gallery/${uploadFolder}/${fileName}`;
 
-    // Upload image
-    const { error: uploadError } = await supabase.storage
-      .from('accommodations')
-      .upload(filePath, file);
+      // Check file size
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        throw new Error("File size exceeds 10MB limit");
+      }
 
-    if (uploadError) {
-      console.error("Error uploading image:", uploadError);
+      // Upload image
+      const { error: uploadError } = await supabase.storage
+        .from('accommodations')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('accommodations')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
       toast({
         title: "Error",
-        description: `Failed to upload image: ${uploadError.message}`,
+        description: error instanceof Error ? error.message : "Failed to upload image",
         variant: "destructive",
       });
       return null;
     }
-
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('accommodations')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
   };
 
   // Add new image
   const handleAddImage = async () => {
-    // Image file and alt text are required by DB schema
     if (!imageFile) {
-       toast({
-         title: "Error",
-         description: "Image upload is required by schema.",
-         variant: "destructive",
-       });
-       return;
-    }
-
-    if (!altText.trim()) {
       toast({
         title: "Error",
-        description: "Alt text is required by schema.",
+        description: "Please select an image to upload",
         variant: "destructive",
       });
       return;
     }
 
+    if (!altText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide alt text for the image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if PG is selected
+    if (!selectedPg) {
+      toast({
+        title: "Error",
+        description: "Please select a PG before uploading an image",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -191,27 +210,27 @@ const Gallery = () => {
       const imageUrl = await uploadImage(imageFile);
 
       if (!imageUrl) {
-        // Upload failed, error already toasted in uploadImage
-        setIsSubmitting(false);
-        return;
+        return; // Error already handled in uploadImage
       }
 
       // Get highest sort order if not provided
-      const finalSortOrder = sortOrder !== undefined && sortOrder !== null ? sortOrder : (images.length > 0 
+      const finalSortOrder = sortOrder || (images.length > 0 
         ? Math.max(...images.map(img => img.sort_order)) + 1 
         : 0);
 
-
       // Add to gallery
       const { error } = await supabase.from("accommodation_images").insert({
-        accommodation_id: customAccommodationId || selectedPgId || null, // Allow null if neither is selected
-        image_url: imageUrl, // Required
-        alt_text: altText, // Required
+        accommodation_id: customAccommodationId || selectedPgId || null,
+        image_url: imageUrl,
+        alt_text: altText.trim(),
         sort_order: finalSortOrder,
-        created_at: customCreatedAt || undefined, // Supabase will default if undefined
+        created_at: customCreatedAt || undefined,
+        pg_name: selectedPg // Add the selected PG name
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       // Reset form and refresh
       setImagePreview(null);
@@ -220,18 +239,18 @@ const Gallery = () => {
       setSortOrder(0);
       setCustomAccommodationId("");
       setCustomCreatedAt("");
-      fetchImages();
+      await fetchImages();
       setActiveTab("view");
 
       toast({
-        title: "Image added",
-        description: "The image has been added to the gallery",
+        title: "Success",
+        description: "Image has been added to the gallery",
       });
     } catch (error) {
       console.error("Error adding image:", error);
       toast({
         title: "Error",
-        description: `Failed to add image: ${error instanceof Error ? error.message : String(error)}`,
+        description: error instanceof Error ? error.message : "Failed to add image to gallery",
         variant: "destructive",
       });
     } finally {
