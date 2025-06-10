@@ -31,6 +31,7 @@ const accommodationSchema = z.object({
   email: z.string().optional(),
   features: z.array(z.string()).optional(),
   pg_category: z.enum(['girls', 'boys']).optional(),
+  maps_link: z.string().optional(),
 });
 
 type AccommodationFormValues = z.infer<typeof accommodationSchema>;
@@ -65,6 +66,7 @@ const AccommodationForm = ({ onSuccess, initialData, mode = 'add' }: Accommodati
       email: initialData?.email || "",
       features: initialData?.features || [],
       pg_category: initialData?.pg_category || undefined,
+      maps_link: initialData?.maps_link || "",
     },
   });
 
@@ -129,6 +131,7 @@ const AccommodationForm = ({ onSuccess, initialData, mode = 'add' }: Accommodati
         email: values.email || null,
         features: features,
         pg_category: values.pg_category || null,
+        maps_link: values.maps_link || null,
       };
 
       if (imageFile) {
@@ -294,6 +297,20 @@ const AccommodationForm = ({ onSuccess, initialData, mode = 'add' }: Accommodati
                       className="min-h-[120px]" 
                       {...field} 
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="maps_link"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Google Maps Link</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter Google Maps link" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

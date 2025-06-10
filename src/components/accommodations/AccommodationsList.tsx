@@ -119,6 +119,7 @@ const AccommodationsList = ({ accommodations, isLoading, onRefresh, onEdit }: Ac
                   <TableHead>Code</TableHead>
                   <TableHead>Address</TableHead>
                   <TableHead>Contact</TableHead>
+                  <TableHead>Maps Link</TableHead>
                   <TableHead>Features</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -143,13 +144,27 @@ const AccommodationsList = ({ accommodations, isLoading, onRefresh, onEdit }: Ac
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={accommodation.pg_category === 'girls' ? 'pink' : 'blue'}>
+                      <Badge variant={accommodation.pg_category === 'girls' ? 'secondary' : 'default'}>
                         {accommodation.pg_category === 'girls' ? 'Girls PG' : 'Boys PG'}
                       </Badge>
                     </TableCell>
                     <TableCell>{accommodation.code}</TableCell>
                     <TableCell>{accommodation.address}</TableCell>
                     <TableCell>{accommodation.contact}</TableCell>
+                    <TableCell>
+                      {accommodation.maps_link ? (
+                        <a
+                          href={accommodation.maps_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:text-blue-700 underline"
+                        >
+                          View on Maps
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">No map link</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {accommodation.features?.map((feature: string, index: number) => (
