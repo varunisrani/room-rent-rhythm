@@ -19,7 +19,7 @@ import Reports from "./pages/Reports";
 import Accommodations from "./pages/Accommodations"; // Add this import
 import NotFound from "./pages/NotFound";
 import Users from "./pages/Users";
-import PgUsers from "./pages/PgUsers";
+import PGUsers from "./pages/PGUsers";
 import Gallery from "./pages/Gallery";
 
 const queryClient = new QueryClient();
@@ -77,7 +77,7 @@ const App = () => (
             } />
             <Route path="/pg-users" element={
               <RouteGuard allowedRoles={['admin']}>
-                <Layout><PgUsers /></Layout>
+                <Layout><PGUsers /></Layout>
               </RouteGuard>
             } />
             <Route path="/pg-user" element={<Navigate to="/pg-users" replace />} />
