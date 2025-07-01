@@ -59,26 +59,17 @@ export default function Residents() {
   const [currentResident, setCurrentResident] = useState<ResidentWithRoom | null>(null);
   const [confirmDeleteDialog, setConfirmDeleteDialog] = useState(false);
   const [residentToDelete, setResidentToDelete] = useState<ResidentWithRoom | null>(null);
-  const [pgLocations, setPgLocations] = useState<string[]>([
-    "Main Building", 
-    "Annex Building", 
-    "North Wing", 
-    "South Wing", 
-    "East Block"
-  ]);
   const { toast } = useToast();
   
   const form = useForm({
     defaultValues: {
       name: "",
       phone: "",
-      email: "",
       room_id: "",
       date_of_birth: "",
       gender: "male",
-      security_deposit: 0,
-      pg_location: "",
-      monthly_rent: 0,
+      security_deposit: "",
+      monthly_rent: "",
       join_date: new Date().toISOString().split('T')[0],
     },
   });
@@ -90,26 +81,22 @@ export default function Residents() {
         form.reset({
           name: currentResident.name,
           phone: currentResident.phone,
-          email: currentResident.email || "",
           room_id: currentResident.room_id || "",
           date_of_birth: currentResident.date_of_birth ? new Date(currentResident.date_of_birth).toISOString().split('T')[0] : "",
           gender: currentResident.gender || "male",
-          security_deposit: currentResident.security_deposit || 0,
-          pg_location: currentResident.pg_location || "",
-          monthly_rent: currentResident.monthly_rent || 0,
+          security_deposit: currentResident.security_deposit ? currentResident.security_deposit.toString() : "",
+          monthly_rent: currentResident.monthly_rent ? currentResident.monthly_rent.toString() : "",
           join_date: new Date(currentResident.join_date).toISOString().split('T')[0],
         });
       } else {
         form.reset({
           name: "",
           phone: "",
-          email: "",
           room_id: "",
           date_of_birth: "",
           gender: "male",
-          security_deposit: 0,
-          pg_location: "",
-          monthly_rent: 0,
+          security_deposit: "",
+          monthly_rent: "",
           join_date: new Date().toISOString().split('T')[0],
         });
       }
@@ -127,7 +114,6 @@ export default function Residents() {
             id,
             name,
             phone,
-            email,
             join_date,
             status,
             created_at,
@@ -136,7 +122,6 @@ export default function Residents() {
             date_of_birth,
             gender,
             security_deposit,
-            pg_location,
             monthly_rent,
             rooms(room_no)
           `)
@@ -221,13 +206,11 @@ export default function Residents() {
           .update({
             name: values.name,
             phone: values.phone,
-            email: values.email || null,
             room_id: roomIdToUse,
             date_of_birth: formattedDateOfBirth,
             gender: values.gender,
-            security_deposit: values.security_deposit,
-            pg_location: values.pg_location,
-            monthly_rent: values.monthly_rent,
+            security_deposit: Number(values.security_deposit) || 0,
+            monthly_rent: Number(values.monthly_rent) || 0,
             join_date: values.join_date,
           })
           .eq("id", currentResident.id)
@@ -261,15 +244,13 @@ export default function Residents() {
           .insert({
             name: values.name,
             phone: values.phone,
-            email: values.email || null,
             room_id: roomIdToUse,
             status: "Active",
             join_date: values.join_date,
             date_of_birth: formattedDateOfBirth,
             gender: values.gender,
-            security_deposit: values.security_deposit,
-            pg_location: values.pg_location,
-            monthly_rent: values.monthly_rent,
+            security_deposit: Number(values.security_deposit) || 0,
+            monthly_rent: Number(values.monthly_rent) || 0,
           })
           .select();
           
@@ -498,19 +479,6 @@ export default function Residents() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter email address" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 
                 <FormField
                   control={form.control}
@@ -580,7 +548,13 @@ export default function Residents() {
                     <FormItem>
                       <FormLabel>Security Deposit (₹)</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                        <Input 
+                          type="number" 
+                          placeholder="Enter security deposit" 
+                          className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          inputMode="numeric"
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -594,7 +568,13 @@ export default function Residents() {
                     <FormItem>
                       <FormLabel>Monthly Rent (₹)</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                        <Input 
+                          type="number" 
+                          placeholder="Enter monthly rent" 
+                          className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          inputMode="numeric"
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -633,34 +613,6 @@ export default function Residents() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="pg_location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>PG Location</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select PG location" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {pgLocations.map((location) => (
-                            <SelectItem key={location} value={location}>
-                              {location}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
               
               <DialogFooter className="flex justify-end space-x-2 pt-4">

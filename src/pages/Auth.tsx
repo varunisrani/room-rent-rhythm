@@ -40,46 +40,64 @@ export default function Auth() {
     try {
       setLoading(true);
 
-      // Query the login table instead of users table
-      const { data: users, error } = await supabase
-        .from("login")
+      // First check pg_manage table for managers
+      const { data: managers, error: managerError } = await supabase
+        .from("pg_manage")
+        .select("*")
+        .eq("name", values.username);
+
+      if (!managerError && managers && managers.length > 0) {
+        const manager = managers[0];
+        
+        // Check password for manager
+        if (manager.password === values.password) {
+          // Manager login successful
+          login({
+            id: manager.id,
+            username: manager.name,
+            role: 'manager',
+            created_at: new Date().toISOString()
+          });
+          
+          console.log("Manager login successful, redirecting to residents...");
+          navigate("/residents");
+          return;
+        } else {
+          throw new Error("Invalid username or password");
+        }
+      }
+
+      // If not found in pg_manage, check users table for admins
+      const { data: admins, error: adminError } = await supabase
+        .from("users")
         .select("*")
         .eq("username", values.username);
 
-      if (error) {
+      if (adminError) {
         throw new Error("Error fetching user data");
       }
 
-      if (!users || users.length === 0) {
+      if (!admins || admins.length === 0) {
         throw new Error("Invalid username or password");
       }
 
-      const user = users[0];
+      const admin = admins[0];
 
-      // In a real app, you should properly verify the password hash
-      // Here we're just checking if it matches the stored password for simplicity
-      if (user.password !== values.password) {
+      // Check password for admin
+      if (admin.password !== values.password) {
         throw new Error("Invalid username or password");
       }
 
-      // Login successful
+      // Admin login successful
       login({
-        id: user.id, // ID is already a string in the login table
-        username: user.username,
-        role: user.role as 'admin' | 'manager',
-        created_at: user.created_at
+        id: admin.id.toString(),
+        username: admin.username,
+        role: 'admin',
+        created_at: admin.created_at
       });
       
-      console.log("Login successful, redirecting to appropriate page...");
-      
-      // Redirect based on role
-      if (user.role === 'admin') {
-        navigate("/dashboard");
-      } else if (user.role === 'manager') {
-        navigate("/residents");
-      } else {
-        navigate("/residents"); // Default fallback
-      }
+      console.log("Admin login successful, redirecting to dashboard...");
+      navigate("/dashboard");
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -175,8 +193,8 @@ export default function Auth() {
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
             <p>Demo credentials:</p>
-            <p>Admin: admin / admin123</p>
-            <p>Manager: manager / manager123</p>
+            <p>Admin: Use Users table credentials</p>
+            <p>Manager: Use PG Manage table credentials</p>
           </div>
         </CardContent>
       </Card>

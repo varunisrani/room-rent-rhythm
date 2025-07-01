@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, MoreHorizontal } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Room } from "@/types/hostelTypes";
 import { useToast } from "@/components/ui/use-toast";
@@ -15,6 +15,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { 
   Form,
@@ -32,21 +33,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Rooms() {
   const [searchQuery, setSearchQuery] = useState("");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [confirmDeleteDialog, setConfirmDeleteDialog] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
   const { toast } = useToast();
   
   const form = useForm({
     defaultValues: {
       room_no: "",
-      type: "Single",
-      floor: "Ground",
+      type: "One sharing",
       capacity: 1,
-      rent: 0,
     },
   });
   
@@ -89,6 +96,41 @@ export default function Rooms() {
       room.status.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
+  const handleDelete = (room: Room) => {
+    setRoomToDelete(room);
+    setConfirmDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!roomToDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from("rooms")
+        .delete()
+        .eq("id", roomToDelete.id);
+      
+      if (error) throw error;
+      
+      setRooms(rooms.filter(r => r.id !== roomToDelete.id));
+      
+      toast({
+        title: "Room deleted",
+        description: `Room ${roomToDelete.room_no} has been removed.`
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error deleting room",
+        description: error.message || "Failed to delete room",
+        variant: "destructive"
+      });
+      console.error("Error deleting room:", error);
+    } finally {
+      setConfirmDeleteDialog(false);
+      setRoomToDelete(null);
+    }
+  };
+
   const onSubmit = async (values: any) => {
     try {
       const { data, error } = await supabase
@@ -97,9 +139,7 @@ export default function Rooms() {
           {
             room_no: values.room_no,
             type: values.type,
-            floor: values.floor,
             capacity: values.capacity,
-            rent: values.rent,
             occupancy: 0,
             status: "Available"
           }
@@ -170,10 +210,8 @@ export default function Rooms() {
                 <TableRow>
                   <TableHead>Room No.</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Floor</TableHead>
                   <TableHead>Capacity</TableHead>
                   <TableHead>Occupancy</TableHead>
-                  <TableHead>Rent</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -184,23 +222,31 @@ export default function Rooms() {
                     <TableRow key={room.id}>
                       <TableCell className="font-medium">{room.room_no}</TableCell>
                       <TableCell>{room.type}</TableCell>
-                      <TableCell>{room.floor}</TableCell>
                       <TableCell>{room.capacity}</TableCell>
                       <TableCell>{room.occupancy}</TableCell>
-                      <TableCell>₹{room.rent}</TableCell>
                       <TableCell>
                         <StatusBadge status={room.status} />
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleDelete(room)}>
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-4">
+                    <TableCell colSpan={6} className="text-center py-4">
                       {searchQuery ? "No rooms matching your search" : "No rooms found. Add some rooms to get started."}
                     </TableCell>
                   </TableRow>
@@ -254,11 +300,12 @@ export default function Rooms() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Single">Single</SelectItem>
-                          <SelectItem value="Double">Double</SelectItem>
-                          <SelectItem value="Triple">Triple</SelectItem>
-                          <SelectItem value="Quad">Quad</SelectItem>
-                          <SelectItem value="Dormitory">Dormitory</SelectItem>
+                          <SelectItem value="One sharing">One sharing</SelectItem>
+                          <SelectItem value="Two sharing">Two sharing</SelectItem>
+                          <SelectItem value="Three sharing">Three sharing</SelectItem>
+                          <SelectItem value="Four sharing">Four sharing</SelectItem>
+                          <SelectItem value="Five sharing">Five sharing</SelectItem>
+                          <SelectItem value="Six sharing">Six sharing</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -266,37 +313,6 @@ export default function Rooms() {
                   )}
                 />
                 
-                <FormField
-                  control={form.control}
-                  name="floor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Floor</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select floor" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Ground">Ground Floor</SelectItem>
-                          <SelectItem value="First">First Floor</SelectItem>
-                          <SelectItem value="Second">Second Floor</SelectItem>
-                          <SelectItem value="Third">Third Floor</SelectItem>
-                          <SelectItem value="Fourth">Fourth Floor</SelectItem>
-                          <SelectItem value="Fifth">Fifth Floor</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="capacity"
@@ -309,25 +325,6 @@ export default function Rooms() {
                           placeholder="Number of beds"
                           {...field}
                           onChange={(e) => field.onChange(parseInt(e.target.value || '0', 10))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="rent"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Monthly Rent (₹)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          placeholder="Monthly rent"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value || '0'))}
                         />
                       </FormControl>
                       <FormMessage />
@@ -348,6 +345,32 @@ export default function Rooms() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={confirmDeleteDialog} onOpenChange={setConfirmDeleteDialog}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete Room {roomToDelete?.room_no}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end space-x-2 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setConfirmDeleteDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDelete}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -815,6 +815,27 @@ export type Database = {
         }
         Relationships: []
       }
+      pg_manage: {
+        Row: {
+          id: string
+          name: string
+          password: string
+          pg_name: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          password: string
+          pg_name?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          password?: string
+          pg_name?: string | null
+        }
+        Relationships: []
+      }
       residents: {
         Row: {
           created_at: string
