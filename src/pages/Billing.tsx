@@ -7,8 +7,9 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search, MoreHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bill, Resident } from "@/types/hostelTypes";
+import { Bill, Resident, Room } from "@/types/hostelTypes";
 import { useToast } from "@/components/ui/use-toast";
+import { useManagerFilter } from "@/hooks/useManagerFilter";
 import {
   Dialog,
   DialogContent,
@@ -45,15 +46,20 @@ interface ResidentWithRoom {
 
 export default function Billing() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [allBills, setAllBills] = useState<Bill[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
+  const [allResidents, setAllResidents] = useState<Resident[]>([]);
   const [residents, setResidents] = useState<Resident[]>([]);
+  const [allRooms, setAllRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const { toast } = useToast();
+  const { filterRooms, filterResidents, filterBillsByRoom } = useManagerFilter();
   
   const form = useForm({
     defaultValues: {
       resident_id: "",
+      room_id: "",
       amount: 0,
       details: "",
       due_date: "",
@@ -79,6 +85,35 @@ export default function Billing() {
     dueDate.setDate(dueDate.getDate() + 10);
     form.setValue("due_date", formatDateForInput(dueDate));
   }, [form]);
+
+  // Fetch rooms first
+  useEffect(() => {
+    async function fetchRooms() {
+      try {
+        const { data, error } = await supabase
+          .from("rooms")
+          .select("*")
+          .order("room_no");
+          
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setAllRooms(data);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error fetching rooms",
+          description: error.message || "Failed to load rooms",
+          variant: "destructive",
+        });
+        console.error("Error fetching rooms:", error);
+      }
+    }
+    
+    fetchRooms();
+  }, [toast]);
   
   // Fetch bills
   useEffect(() => {
@@ -98,7 +133,9 @@ export default function Billing() {
             created_at,
             updated_at,
             resident_id,
-            residents(name, room_id, rooms(room_no))
+            room_id,
+            residents(name),
+            rooms(room_no)
           `)
           .order("created_at", { ascending: false });
           
@@ -110,9 +147,10 @@ export default function Billing() {
           const formattedData = data.map(item => ({
             ...item,
             resident_name: item.residents?.name || 'Unknown',
-            room: item.residents?.rooms?.room_no || 'Not Assigned'
+            room: item.rooms?.room_no || 'Not Assigned'
           }));
-          setBills(formattedData as unknown as Bill[]);
+          setAllBills(formattedData as unknown as Bill[]);
+          // Filtering will be applied after rooms are loaded
         }
       } catch (error: any) {
         toast({
@@ -150,7 +188,13 @@ export default function Billing() {
         
         if (data) {
           // We're storing residents with just the properties we need, not as the full Resident type
-          setResidents(data as unknown as Resident[]);
+          setAllResidents(data as unknown as Resident[]);
+          
+          // Filter residents based on manager's rooms
+          if (allRooms.length > 0) {
+            const filteredResidents = filterResidents(data as unknown as Resident[], allRooms);
+            setResidents(filteredResidents);
+          }
         }
       } catch (error: any) {
         toast({
@@ -164,6 +208,19 @@ export default function Billing() {
     
     fetchResidents();
   }, [toast]);
+
+  // Re-filter data when all data is available
+  useEffect(() => {
+    if (allRooms.length > 0 && allResidents.length > 0) {
+      const filteredResidents = filterResidents(allResidents, allRooms);
+      setResidents(filteredResidents);
+    }
+    
+    if (allRooms.length > 0 && allBills.length > 0) {
+      const filteredBills = filterBillsByRoom(allBills, allRooms);
+      setBills(filteredBills);
+    }
+  }, [allRooms, allResidents, allBills, filterResidents, filterBillsByRoom]);
   
   // Filter bills based on search query
   const filteredBills = bills.filter(
@@ -182,6 +239,7 @@ export default function Billing() {
           {
             invoice_id: invoiceId,
             resident_id: values.resident_id,
+            room_id: values.room_id || null,
             amount: values.amount,
             details: values.details || null,
             bill_date: new Date().toISOString(),
@@ -196,15 +254,21 @@ export default function Billing() {
       }
       
       if (data) {
-        // Find resident with room info
-        const resident = residents.find(r => r.id === values.resident_id) as unknown as ResidentWithRoom;
+        // Find resident and room info
+        const resident = allResidents.find(r => r.id === values.resident_id) as unknown as ResidentWithRoom;
+        const room = allRooms.find(r => r.id === values.room_id);
         const newBill = {
           ...data[0],
           resident_name: resident?.name || 'Unknown',
-          room: resident?.rooms?.room_no || 'Not Assigned'
+          room: room?.room_no || 'Not Assigned'
         };
         
-        setBills([newBill as unknown as Bill, ...bills]);
+        const updatedAllBills = [newBill as unknown as Bill, ...allBills];
+        setAllBills(updatedAllBills);
+        
+        // Filter and update displayed bills using room-based filtering
+        const filteredBills = filterBillsByRoom(updatedAllBills, allRooms);
+        setBills(filteredBills);
         
         toast({
           title: "Bill created successfully",
@@ -218,6 +282,7 @@ export default function Billing() {
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + 10);
         form.setValue("due_date", formatDateForInput(dueDate));
+        form.setValue("room_id", "");
       }
     } catch (error: any) {
       toast({
@@ -342,6 +407,35 @@ export default function Billing() {
                         {residents.map((resident: any) => (
                           <SelectItem key={resident.id} value={resident.id}>
                             {resident.name} {resident.rooms && `(Room ${resident.rooms.room_no})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="room_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Room (Optional)</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a room" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">No Room Selected</SelectItem>
+                        {rooms.map((room) => (
+                          <SelectItem key={room.id} value={room.id}>
+                            Room {room.room_no} ({room.type})
                           </SelectItem>
                         ))}
                       </SelectContent>

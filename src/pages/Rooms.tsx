@@ -9,6 +9,7 @@ import { Plus, Search, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Room } from "@/types/hostelTypes";
 import { useToast } from "@/components/ui/use-toast";
+import { useManagerFilter } from "@/hooks/useManagerFilter";
 import {
   Dialog,
   DialogContent,
@@ -42,21 +43,51 @@ import {
 
 export default function Rooms() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [allRooms, setAllRooms] = useState<Room[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [accommodations, setAccommodations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
   const [confirmDeleteDialog, setConfirmDeleteDialog] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
   const { toast } = useToast();
+  const { filterRooms, isManager } = useManagerFilter();
   
   const form = useForm({
     defaultValues: {
       room_no: "",
       type: "One sharing",
       capacity: 1,
+      pg_names: "none",
     },
   });
   
+  // Fetch accommodations
+  useEffect(() => {
+    async function fetchAccommodations() {
+      try {
+        const { data, error } = await supabase
+          .from("accommodations")
+          .select("id, name")
+          .order("name");
+
+        if (error) throw error;
+        setAccommodations(data || []);
+      } catch (error) {
+        console.error("Error fetching accommodations:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load accommodations",
+          variant: "destructive",
+        });
+      }
+    }
+
+    fetchAccommodations();
+  }, [toast]);
+
   useEffect(() => {
     async function fetchRooms() {
       try {
@@ -71,7 +102,9 @@ export default function Rooms() {
         }
         
         if (data) {
-          setRooms(data);
+          setAllRooms(data);
+          const filteredData = filterRooms(data);
+          setRooms(filteredData);
         }
       } catch (error: any) {
         toast({
@@ -87,6 +120,27 @@ export default function Rooms() {
     
     fetchRooms();
   }, [toast]);
+
+  // Reset form when dialog opens/closes
+  useEffect(() => {
+    if (openDialog) {
+      if (editMode && currentRoom) {
+        form.reset({
+          room_no: currentRoom.room_no,
+          type: currentRoom.type,
+          capacity: currentRoom.capacity,
+          pg_names: currentRoom.pg_names || "none",
+        });
+      } else {
+        form.reset({
+          room_no: "",
+          type: "One sharing",
+          capacity: 1,
+          pg_names: "none",
+        });
+      }
+    }
+  }, [openDialog, editMode, currentRoom, form]);
   
   // Filter rooms based on search query
   const filteredRooms = rooms.filter(
@@ -96,6 +150,12 @@ export default function Rooms() {
       room.status.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
+  const handleEdit = (room: Room) => {
+    setCurrentRoom(room);
+    setEditMode(true);
+    setOpenDialog(true);
+  };
+
   const handleDelete = (room: Room) => {
     setRoomToDelete(room);
     setConfirmDeleteDialog(true);
@@ -112,7 +172,10 @@ export default function Rooms() {
       
       if (error) throw error;
       
-      setRooms(rooms.filter(r => r.id !== roomToDelete.id));
+      const updatedAllRooms = allRooms.filter(r => r.id !== roomToDelete.id);
+      setAllRooms(updatedAllRooms);
+      const filteredData = filterRooms(updatedAllRooms);
+      setRooms(filteredData);
       
       toast({
         title: "Room deleted",
@@ -133,41 +196,78 @@ export default function Rooms() {
 
   const onSubmit = async (values: any) => {
     try {
-      const { data, error } = await supabase
-        .from("rooms")
-        .insert([
-          {
+      if (editMode && currentRoom) {
+        // Update existing room
+        const { data, error } = await supabase
+          .from("rooms")
+          .update({
             room_no: values.room_no,
             type: values.type,
             capacity: values.capacity,
-            occupancy: 0,
-            status: "Available"
-          }
-        ])
-        .select();
+            pg_names: values.pg_names === "none" ? null : values.pg_names
+          })
+          .eq("id", currentRoom.id)
+          .select();
         
-      if (error) {
-        throw error;
+        if (error) throw error;
+        
+        if (data) {
+          const updatedAllRooms = allRooms.map(room => 
+            room.id === currentRoom.id ? data[0] : room
+          );
+          setAllRooms(updatedAllRooms);
+          const filteredData = filterRooms(updatedAllRooms);
+          setRooms(filteredData);
+          
+          toast({
+            title: "Room updated successfully",
+            description: `Room ${values.room_no} has been updated.`,
+          });
+        }
+      } else {
+        // Add new room
+        const { data, error } = await supabase
+          .from("rooms")
+          .insert([
+            {
+              room_no: values.room_no,
+              type: values.type,
+              capacity: values.capacity,
+              occupancy: 0,
+              rent: 0,
+              floor: "1",
+              status: "Available",
+              pg_names: values.pg_names === "none" ? null : values.pg_names
+            }
+          ])
+          .select();
+          
+        if (error) throw error;
+        
+        if (data) {
+          const updatedAllRooms = [...allRooms, data[0]];
+          setAllRooms(updatedAllRooms);
+          const filteredData = filterRooms(updatedAllRooms);
+          setRooms(filteredData);
+          
+          toast({
+            title: "Room added successfully",
+            description: `Room ${values.room_no} has been added.`,
+          });
+        }
       }
       
-      if (data) {
-        setRooms([...rooms, data[0]]);
-        
-        toast({
-          title: "Room added successfully",
-          description: `Room ${values.room_no} has been added.`,
-        });
-        
-        setOpenDialog(false);
-        form.reset();
-      }
+      setOpenDialog(false);
+      setEditMode(false);
+      setCurrentRoom(null);
+      form.reset();
     } catch (error: any) {
       toast({
-        title: "Error adding room",
-        description: error.message || "Failed to add room",
+        title: `Error ${editMode ? 'updating' : 'adding'} room`,
+        description: error.message || `Failed to ${editMode ? 'update' : 'add'} room`,
         variant: "destructive",
       });
-      console.error("Error adding room:", error);
+      console.error(`Error ${editMode ? 'updating' : 'adding'} room:`, error);
     }
   };
 
@@ -178,7 +278,11 @@ export default function Rooms() {
           <h1 className="text-3xl font-bold mb-1">Rooms</h1>
           <p className="text-muted-foreground">Manage all your hostel rooms and their status.</p>
         </div>
-        <Button className="flex items-center gap-1" onClick={() => setOpenDialog(true)}>
+        <Button className="flex items-center gap-1" onClick={() => {
+          setEditMode(false);
+          setCurrentRoom(null);
+          setOpenDialog(true);
+        }}>
           <Plus className="h-4 w-4" />
           <span>Add Room</span>
         </Button>
@@ -212,6 +316,7 @@ export default function Rooms() {
                   <TableHead>Type</TableHead>
                   <TableHead>Capacity</TableHead>
                   <TableHead>Occupancy</TableHead>
+                  <TableHead>PG Name</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -224,6 +329,7 @@ export default function Rooms() {
                       <TableCell>{room.type}</TableCell>
                       <TableCell>{room.capacity}</TableCell>
                       <TableCell>{room.occupancy}</TableCell>
+                      <TableCell>{room.pg_names || "No PG Selected"}</TableCell>
                       <TableCell>
                         <StatusBadge status={room.status} />
                       </TableCell>
@@ -235,6 +341,10 @@ export default function Rooms() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(room)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDelete(room)}>
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
@@ -246,7 +356,7 @@ export default function Rooms() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4">
+                    <TableCell colSpan={7} className="text-center py-4">
                       {searchQuery ? "No rooms matching your search" : "No rooms found. Add some rooms to get started."}
                     </TableCell>
                   </TableRow>
@@ -261,9 +371,12 @@ export default function Rooms() {
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add New Room</DialogTitle>
+            <DialogTitle>{editMode ? "Edit Room" : "Add New Room"}</DialogTitle>
             <DialogDescription>
-              Fill in the details below to add a new room to your hostel.
+              {editMode 
+                ? "Update the room details below." 
+                : "Fill in the details below to add a new room to your hostel."
+              }
             </DialogDescription>
           </DialogHeader>
           
@@ -332,6 +445,32 @@ export default function Rooms() {
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="pg_names"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>PG Name</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select PG" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No PG Selected</SelectItem>
+                        {accommodations.map((accommodation) => (
+                          <SelectItem key={accommodation.id} value={accommodation.name}>
+                            {accommodation.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <div className="flex justify-end space-x-2 pt-4">
                 <Button 
@@ -341,7 +480,7 @@ export default function Rooms() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit">Add Room</Button>
+                <Button type="submit">{editMode ? "Update Room" : "Add Room"}</Button>
               </div>
             </form>
           </Form>

@@ -9,6 +9,7 @@ import { Plus, Search, MoreHorizontal, Edit, Trash2, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Resident, Room } from "@/types/hostelTypes";
 import { useToast } from "@/components/ui/use-toast";
+import { useManagerFilter } from "@/hooks/useManagerFilter";
 import {
   Dialog,
   DialogContent,
@@ -51,7 +52,9 @@ interface ResidentWithRoom extends Resident {
 
 export default function Residents() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [allResidents, setAllResidents] = useState<ResidentWithRoom[]>([]);
   const [residents, setResidents] = useState<ResidentWithRoom[]>([]);
+  const [allRooms, setAllRooms] = useState<Room[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -60,6 +63,7 @@ export default function Residents() {
   const [confirmDeleteDialog, setConfirmDeleteDialog] = useState(false);
   const [residentToDelete, setResidentToDelete] = useState<ResidentWithRoom | null>(null);
   const { toast } = useToast();
+  const { filterRooms, filterResidents } = useManagerFilter();
   
   const form = useForm({
     defaultValues: {
@@ -136,7 +140,8 @@ export default function Residents() {
             ...item,
             room: item.rooms?.room_no || 'Not Assigned'
           }));
-          setResidents(formattedData as ResidentWithRoom[]);
+          setAllResidents(formattedData as ResidentWithRoom[]);
+          // Filter residents based on manager's rooms (will be applied after rooms are loaded)
           console.log("Resident data loaded:", formattedData);
         }
       } catch (error: any) {
@@ -168,8 +173,17 @@ export default function Residents() {
         }
         
         if (data) {
-          setRooms(data);
+          setAllRooms(data);
+          const filteredRooms = filterRooms(data);
+          setRooms(filteredRooms);
+          
+          // Now filter residents based on filtered rooms
+          const filteredResidents = filterResidents(allResidents, data);
+          setResidents(filteredResidents);
+          
           console.log("Rooms loaded:", data);
+          console.log("Filtered rooms:", filteredRooms);
+          console.log("Filtered residents:", filteredResidents);
         }
       } catch (error: any) {
         toast({
@@ -183,6 +197,14 @@ export default function Residents() {
     
     fetchRooms();
   }, [toast]);
+
+  // Re-filter residents when both residents and rooms data are available
+  useEffect(() => {
+    if (allResidents.length > 0 && allRooms.length > 0) {
+      const filteredResidents = filterResidents(allResidents, allRooms);
+      setResidents(filteredResidents);
+    }
+  }, [allResidents, allRooms, filterResidents]);
   
   // Filter residents based on search query
   const filteredResidents = residents.filter(
@@ -221,16 +243,19 @@ export default function Residents() {
         }
         
         if (data) {
-          // Find room name
-          const room = rooms.find(r => r.id === roomIdToUse);
+          // Find room name from all rooms (not just filtered ones)
+          const room = allRooms.find(r => r.id === roomIdToUse);
           const updatedResident = {
             ...data[0],
             room: room?.room_no || 'Not Assigned'
           };
           
-          setResidents(residents.map(r => 
-            r.id === currentResident.id ? updatedResident as unknown as Resident : r
-          ));
+          const updatedAllResidents = allResidents.map(r => 
+            r.id === currentResident.id ? updatedResident as unknown as ResidentWithRoom : r
+          );
+          setAllResidents(updatedAllResidents);
+          const filteredResidents = filterResidents(updatedAllResidents, allRooms);
+          setResidents(filteredResidents);
           
           toast({
             title: "Resident updated successfully",
@@ -259,14 +284,17 @@ export default function Residents() {
         }
         
         if (data) {
-          // Find room name
-          const room = rooms.find(r => r.id === roomIdToUse);
+          // Find room name from all rooms (not just filtered ones)
+          const room = allRooms.find(r => r.id === roomIdToUse);
           const newResident = {
             ...data[0],
             room: room?.room_no || 'Not Assigned'
           };
           
-          setResidents([...residents, newResident as unknown as Resident]);
+          const updatedAllResidents = [...allResidents, newResident as unknown as ResidentWithRoom];
+          setAllResidents(updatedAllResidents);
+          const filteredResidents = filterResidents(updatedAllResidents, allRooms);
+          setResidents(filteredResidents);
           
           toast({
             title: "Resident added successfully",
@@ -311,7 +339,10 @@ export default function Residents() {
       
       if (error) throw error;
       
-      setResidents(residents.filter(r => r.id !== residentToDelete.id));
+      const updatedAllResidents = allResidents.filter(r => r.id !== residentToDelete.id);
+      setAllResidents(updatedAllResidents);
+      const filteredResidents = filterResidents(updatedAllResidents, allRooms);
+      setResidents(filteredResidents);
       
       toast({
         title: "Resident deleted",

@@ -56,7 +56,8 @@ export default function Auth() {
             id: manager.id,
             username: manager.name,
             role: 'manager',
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            pg_name: manager.pg_name
           });
           
           console.log("Manager login successful, redirecting to residents...");

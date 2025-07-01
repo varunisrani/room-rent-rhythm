@@ -11,6 +11,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import { ElectricityReading, Room } from "@/types/hostelTypes";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useManagerFilter } from "@/hooks/useManagerFilter";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ import {
 
 export default function Electricity() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [allReadings, setAllReadings] = useState<ElectricityReading[]>([]);
   const [readings, setReadings] = useState<ElectricityReading[]>([]);
   const [stats, setStats] = useState({
     totalUnits: 0,
@@ -45,9 +47,11 @@ export default function Electricity() {
     currentRate: 8, // Default rate
   });
   const [loading, setLoading] = useState(true);
+  const [allRooms, setAllRooms] = useState<Room[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const { toast } = useToast();
+  const { filterRooms, filterElectricityReadings } = useManagerFilter();
   
   const form = useForm({
     defaultValues: {
@@ -90,19 +94,8 @@ export default function Electricity() {
             ...item,
             room_no: item.rooms?.room_no || 'Unknown'
           }));
-          setReadings(formattedData as unknown as ElectricityReading[]);
-          
-          // Calculate stats
-          const totalUnits = formattedData.reduce((sum, item) => sum + (item.units || 0), 0);
-          const totalAmount = formattedData.reduce((sum, item) => sum + (item.amount || 0), 0);
-          const avgConsumption = totalUnits / (formattedData.length || 1);
-          
-          setStats({
-            totalUnits,
-            totalAmount,
-            avgConsumption,
-            currentRate: 8, // You can dynamically set this if needed
-          });
+          setAllReadings(formattedData as unknown as ElectricityReading[]);
+          // Filtering will be applied after rooms are loaded
         }
       } catch (error: any) {
         toast({
@@ -133,7 +126,25 @@ export default function Electricity() {
         }
         
         if (data) {
-          setRooms(data);
+          setAllRooms(data);
+          const filteredRooms = filterRooms(data);
+          setRooms(filteredRooms);
+          
+          // Now filter electricity readings based on filtered rooms
+          const filteredReadings = filterElectricityReadings(allReadings, data);
+          setReadings(filteredReadings);
+          
+          // Calculate stats for filtered data
+          const totalUnits = filteredReadings.reduce((sum, item) => sum + (item.units || 0), 0);
+          const totalAmount = filteredReadings.reduce((sum, item) => sum + (item.amount || 0), 0);
+          const avgConsumption = totalUnits / (filteredReadings.length || 1);
+          
+          setStats({
+            totalUnits,
+            totalAmount,
+            avgConsumption,
+            currentRate: 8,
+          });
         }
       } catch (error: any) {
         toast({
@@ -147,6 +158,26 @@ export default function Electricity() {
     
     fetchRooms();
   }, [toast]);
+
+  // Re-filter electricity readings when both readings and rooms data are available
+  useEffect(() => {
+    if (allReadings.length > 0 && allRooms.length > 0) {
+      const filteredReadings = filterElectricityReadings(allReadings, allRooms);
+      setReadings(filteredReadings);
+      
+      // Recalculate stats for filtered data
+      const totalUnits = filteredReadings.reduce((sum, item) => sum + (item.units || 0), 0);
+      const totalAmount = filteredReadings.reduce((sum, item) => sum + (item.amount || 0), 0);
+      const avgConsumption = totalUnits / (filteredReadings.length || 1);
+      
+      setStats({
+        totalUnits,
+        totalAmount,
+        avgConsumption,
+        currentRate: 8,
+      });
+    }
+  }, [allReadings, allRooms, filterElectricityReadings]);
   
   // Calculate units and amount when current_reading or previous_reading changes
   const calculateUnits = (current: number, previous: number, rate: number) => {
@@ -184,22 +215,31 @@ export default function Electricity() {
       
       // Update readings list with new entry
       if (data) {
-        // Find room name
-        const room = rooms.find(r => r.id === values.room_id);
+        // Find room name from all rooms
+        const room = allRooms.find(r => r.id === values.room_id);
         const newReading = {
           ...data[0],
           room_no: room?.room_no || 'Unknown'
         };
         
-        setReadings(prev => [newReading as unknown as ElectricityReading, ...prev]);
+        const updatedAllReadings = [newReading as unknown as ElectricityReading, ...allReadings];
+        setAllReadings(updatedAllReadings);
         
-        // Update stats
-        setStats(prev => ({
-          totalUnits: prev.totalUnits + units,
-          totalAmount: prev.totalAmount + amount,
-          avgConsumption: (prev.totalUnits + units) / (readings.length + 1),
+        // Filter and update displayed readings
+        const filteredReadings = filterElectricityReadings(updatedAllReadings, allRooms);
+        setReadings(filteredReadings);
+        
+        // Update stats for filtered data
+        const totalUnits = filteredReadings.reduce((sum, item) => sum + (item.units || 0), 0);
+        const totalAmount = filteredReadings.reduce((sum, item) => sum + (item.amount || 0), 0);
+        const avgConsumption = totalUnits / (filteredReadings.length || 1);
+        
+        setStats({
+          totalUnits,
+          totalAmount,
+          avgConsumption,
           currentRate: values.rate,
-        }));
+        });
         
         toast({
           title: "Reading added successfully",

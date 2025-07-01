@@ -13,6 +13,7 @@ export interface Room {
   status: string;
   created_at: string;
   updated_at: string;
+  pg_names: string | null; // The PG this room belongs to
 }
 
 export interface Resident {
@@ -50,6 +51,7 @@ export interface Bill {
   id: string;
   invoice_id: string;
   resident_id: string;
+  room_id: string | null;
   amount: number;
   details: string | null;
   bill_date: string;
@@ -65,5 +67,6 @@ export interface User {
   role: 'admin' | 'manager';
   created_at: string;
   updated_at?: string;
+  pg_name?: string | null; // For managers - the PG they manage
 }
 

@@ -228,6 +228,7 @@ export type Database = {
           id: string
           invoice_id: string
           resident_id: string
+          room_id: string | null
           status: string
           updated_at: string
         }
@@ -240,6 +241,7 @@ export type Database = {
           id?: string
           invoice_id: string
           resident_id: string
+          room_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -252,6 +254,7 @@ export type Database = {
           id?: string
           invoice_id?: string
           resident_id?: string
+          room_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -945,6 +948,7 @@ export type Database = {
           status: string
           type: string
           updated_at: string
+          pg_names: string | null
         }
         Insert: {
           capacity: number
@@ -957,6 +961,7 @@ export type Database = {
           status?: string
           type: string
           updated_at?: string
+          pg_names?: string | null
         }
         Update: {
           capacity?: number
@@ -969,6 +974,7 @@ export type Database = {
           status?: string
           type?: string
           updated_at?: string
+          pg_names?: string | null
         }
         Relationships: []
       }
